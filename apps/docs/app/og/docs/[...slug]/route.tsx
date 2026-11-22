@@ -1,3 +1,6 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+import { clampDescription } from "@/lib/og";
 import { getPageImageUrl } from "@/lib/shared";
 import { source } from "@/lib/source";
 import { notFound } from "next/navigation";
@@ -35,8 +38,14 @@ export async function GET(_req: Request, { params }: RouteContext<"/og/docs/[...
   if (!page) notFound();
 
   const title = page.data.title || "Xebra Docs";
-  const description = page.data.description;
+  const description = page.data.description ? clampDescription(page.data.description) : undefined;
   const section = getSection(pageSlugs);
+  // The main site's type: Geist Regular and SemiBold, the same files as apps/web/assets/og.
+  const root = process.cwd();
+  const [regular, semibold] = await Promise.all([
+    readFile(join(root, "assets/og/Geist-Regular.ttf")),
+    readFile(join(root, "assets/og/Geist-SemiBold.ttf")),
+  ]);
 
   return new ImageResponse(
     <div
@@ -49,7 +58,7 @@ export async function GET(_req: Request, { params }: RouteContext<"/og/docs/[...
         padding: "64px 72px",
         background: `radial-gradient(circle at 85% 0%, #1a1c22 0%, ${OBSIDIAN} 55%)`,
         color: BONE,
-        fontFamily: "system-ui, -apple-system, sans-serif",
+        fontFamily: "Geist",
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
@@ -98,6 +107,8 @@ export async function GET(_req: Request, { params }: RouteContext<"/og/docs/[...
         {description && (
           <span
             style={{
+              display: "block",
+              lineClamp: 3,
               marginTop: 20,
               fontSize: 26,
               color: "rgba(246,243,238,0.55)",
@@ -131,6 +142,10 @@ export async function GET(_req: Request, { params }: RouteContext<"/og/docs/[...
     {
       width: 1200,
       height: 630,
+      fonts: [
+        { name: "Geist", data: regular, weight: 400, style: "normal" },
+        { name: "Geist", data: semibold, weight: 600, style: "normal" },
+      ],
     },
   );
 }
